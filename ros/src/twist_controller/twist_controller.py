@@ -8,7 +8,8 @@ from math import fabs
 GAS_DENSITY = 2.858
 ONE_MPH = 0.44704
 
-PRED_STEERING_FACTOR = 1.0
+PRED_STEERING_FACTOR = .2
+COR_STEERING_FACTOR = .3
 
 
 class Controller(object):
@@ -26,7 +27,7 @@ class Controller(object):
 
         self.prev_time = rospy.get_time()
 
-        self.steer_pid = PID(kp=0.2, ki=0.0009, kd=1.5,
+        self.steer_pid = PID(kp=0.2, ki=0.00009, kd=1.7,
                              mn=-max_steer_angle, mx=max_steer_angle)
         self.max_steer_angle = max_steer_angle
         self.yaw_controller = YawController(wheel_base=wheel_base,
@@ -42,7 +43,7 @@ class Controller(object):
                 angular_velocity,
                 current_velocity):
 
-        throttle = 0.3
+        throttle = 0.01
         brake = 0.0
         steer = 0.0
 
@@ -56,7 +57,7 @@ class Controller(object):
                                                                 current_velocity=current_velocity)
             corrective_steer = self.steer_pid.step(cte, sample_time)
 
-            steer = corrective_steer + PRED_STEERING_FACTOR * predictive_steer
+            steer = COR_STEERING_FACTOR * corrective_steer + PRED_STEERING_FACTOR * predictive_steer
 
             rospy.logwarn('steer = %f, cte = %f, sample_time = %f',
                           steer, cte, sample_time)
@@ -66,5 +67,6 @@ class Controller(object):
             self.prev_time = rospy.get_time()
 
         throttle = 1.0 - 0.9 * self.max_steer_angle / 100 * fabs(steer)
+
 
         return throttle, brake, steer
